@@ -14,24 +14,24 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-using DustInTheWind.ConsoleTools.Modularization.Tests.Utils;
+using DustInTheWind.ConsoleTools.Modularization.Tests.ModuleEngineTestingUtils;
 
 namespace DustInTheWind.ConsoleTools.Modularization.Tests.ModuleEngineTests;
 
 public class Run_DefaultModuleTests
 {
-    private readonly ModuleEngine moduleEngine = new();
+    private readonly ModuleEngineTestingContext testingContext = new();
 
     [Fact]
     public void HavingOneModuleInEngine_WhenEngineIsRun_ThenThatModuleIsRun()
     {
-        DummyModule module1 = CreateDummyModule("mod1");
+        DummyModule module1 = testingContext.CreateDummyModule("mod1");
         module1.OnRun = () =>
         {
-            moduleEngine.RequestToClose();
+            testingContext.ModuleEngine.RequestToClose();
         };
 
-        RunEngineInTimeBox();
+        testingContext.RunEngine();
 
         module1.RunCount.Should().Be(1);
     }
@@ -39,15 +39,15 @@ public class Run_DefaultModuleTests
     [Fact]
     public void HavingTwoModulesInEngine_WhenEngineIsRun_ThenOnlyFirstModuleIsRun()
     {
-        DummyModule module1 = CreateDummyModule("mod1");
+        DummyModule module1 = testingContext.CreateDummyModule("mod1");
         module1.OnRun = () =>
         {
-            moduleEngine.RequestToClose();
+            testingContext.ModuleEngine.RequestToClose();
         };
 
-        DummyModule module2 = CreateDummyModule("mod2");
+        DummyModule module2 = testingContext.CreateDummyModule("mod2");
 
-        RunEngineInTimeBox();
+        testingContext.RunEngine();
 
         module1.RunCount.Should().Be(1);
         module2.RunCount.Should().Be(0);
@@ -56,39 +56,19 @@ public class Run_DefaultModuleTests
     [Fact]
     public void HavingTwoModulesInEngineAndSecondModuleAsDefault_WhenEngineIsRun_ThenOnlySecondModuleIsRun()
     {
-        DummyModule module1 = CreateDummyModule("mod1");
+        DummyModule module1 = testingContext.CreateDummyModule("mod1");
 
-        DummyModule module2 = CreateDummyModule("mod2");
+        DummyModule module2 = testingContext.CreateDummyModule("mod2");
         module2.OnRun = () =>
         {
-            moduleEngine.RequestToClose();
+            testingContext.ModuleEngine.RequestToClose();
         };
 
-        moduleEngine.SetDefaultModule("mod2");
+        testingContext.ModuleEngine.SetDefaultModule("mod2");
 
-        RunEngineInTimeBox();
+        testingContext.RunEngine();
 
         module1.RunCount.Should().Be(0);
         module2.RunCount.Should().Be(1);
-    }
-
-    private DummyModule CreateDummyModule(string id)
-    {
-        DummyModule module1 = new(id);
-        moduleEngine.AddModule(module1);
-        return module1;
-    }
-
-    private void RunEngineInTimeBox(int maxExecutionTime = 100)
-    {
-        TimeBoxExecution.CreateNew(maxExecutionTime)
-            .OnElapsedTime(() =>
-            {
-                moduleEngine.RequestToClose();
-            })
-            .Run(() =>
-            {
-                moduleEngine.Run();
-            });
     }
 }

@@ -21,8 +21,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <PropertyGroup>
         <TargetFramework>net6.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
-        <RootNamespace>DustInTheWind.ConsoleTools.Modularization</RootNamespace>
-        <AssemblyName>DustInTheWind.ConsoleTools.Modularization</AssemblyName>
+        <RootNamespace>DustInTheWind.ConsoleTools.Modularizapp</RootNamespace>
+        <AssemblyName>DustInTheWind.ConsoleTools.Modularizapp</AssemblyName>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <PackageId>ConsoleTools.Modularization</PackageId>
         <Description>An engine to structure the application in modules.</Description>

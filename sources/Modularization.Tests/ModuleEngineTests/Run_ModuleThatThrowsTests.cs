@@ -14,31 +14,31 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-using DustInTheWind.ConsoleTools.Modularization.Tests.Utils;
+using DustInTheWind.ConsoleTools.Modularization.Tests.ModuleEngineTestingUtils;
 
 namespace DustInTheWind.ConsoleTools.Modularization.Tests.ModuleEngineTests;
 
 public class Run_ModuleThatThrowsTests
 {
-    private readonly ModuleEngine moduleEngine = new();
+    private readonly ModuleEngineTestingContext testingContext = new();
 
     [Fact]
     public void HavingOneModuleThatThrows_WhenEngineIsRun_ThenEventIsRaised()
     {
-        DummyModule module1 = CreateDummyModule("mod1");
+        DummyModule module1 = testingContext.CreateDummyModule("mod1");
         module1.OnRun = () =>
         {
             throw new Exception();
         };
 
         bool eventWasRaised = false;
-        moduleEngine.ModuleRunException += (o, ev) =>
+        testingContext.ModuleEngine.ModuleRunException += (o, ev) =>
         {
             eventWasRaised = true;
-            moduleEngine.RequestToClose();
+            testingContext.ModuleEngine.RequestToClose();
         };
 
-        RunEngineInTimeBox();
+        testingContext.RunEngine();
 
         eventWasRaised.Should().BeTrue();
     }
@@ -48,20 +48,20 @@ public class Run_ModuleThatThrowsTests
     {
         Exception thrownException = new();
 
-        DummyModule module1 = CreateDummyModule("mod1");
+        DummyModule module1 = testingContext.CreateDummyModule("mod1");
         module1.OnRun = () =>
         {
             throw thrownException;
         };
 
         Exception actualException = null;
-        moduleEngine.ModuleRunException += (o, ev) =>
+        testingContext.ModuleEngine.ModuleRunException += (o, ev) =>
         {
             actualException = ev.Exception;
-            moduleEngine.RequestToClose();
+            testingContext.ModuleEngine.RequestToClose();
         };
 
-        RunEngineInTimeBox();
+        testingContext.RunEngine();
 
         actualException.Should().BeSameAs(thrownException);
     }
@@ -69,18 +69,18 @@ public class Run_ModuleThatThrowsTests
     [Fact]
     public void HavingOneModuleThatThrowsAndEventHandlerThatRequestsEngineClose_WhenEngineIsRun_ThenEngineIsClosed()
     {
-        DummyModule module1 = CreateDummyModule("mod1");
+        DummyModule module1 = testingContext.CreateDummyModule("mod1");
         module1.OnRun = () =>
         {
             throw new Exception();
         };
 
-        moduleEngine.ModuleRunException += (o, ev) =>
+        testingContext.ModuleEngine.ModuleRunException += (o, ev) =>
         {
             ev.CloseEngine = true;
         };
 
-        RunEngineInTimeBox();
+        testingContext.RunEngine();
 
         // Engine is closed without reaching the timeout.
     }
@@ -88,24 +88,24 @@ public class Run_ModuleThatThrowsTests
     [Fact]
     public void HavingModuleThatThrowsAndEventHandlerThatRequestsSwitchToSecondModule_WhenEngineIsRun_ThenEngineIsRunningTheSecondModule()
     {
-        DummyModule module1 = CreateDummyModule("mod1");
+        DummyModule module1 = testingContext.CreateDummyModule("mod1");
         module1.OnRun = () =>
         {
             throw new Exception();
         };
 
-        DummyModule module2 = CreateDummyModule("mod2");
+        DummyModule module2 = testingContext.CreateDummyModule("mod2");
         module2.OnRun = () =>
         {
-            moduleEngine.RequestToClose();
+            testingContext.ModuleEngine.RequestToClose();
         };
 
-        moduleEngine.ModuleRunException += (o, ev) =>
+        testingContext.ModuleEngine.ModuleRunException += (o, ev) =>
         {
             ev.NextModule = "mod2";
         };
 
-        RunEngineInTimeBox();
+        testingContext.RunEngine();
 
         module1.RunCount.Should().Be(1);
         module2.RunCount.Should().Be(1);
@@ -114,7 +114,7 @@ public class Run_ModuleThatThrowsTests
     [Fact]
     public void HavingOneModuleThatThrowsAndEventHandlerThatRequestsSwitchToNonexistentModule_WhenEngineIsRun_ThenEngineIsRunningTheDefaultModule()
     {
-        DummyModule module1 = CreateDummyModule("mod1");
+        DummyModule module1 = testingContext.CreateDummyModule("mod1");
         int runCount = 0;
         module1.OnRun = () =>
         {
@@ -124,36 +124,16 @@ public class Run_ModuleThatThrowsTests
                 throw new Exception();
 
             if (runCount == 2)
-                moduleEngine.RequestToClose();
+                testingContext.ModuleEngine.RequestToClose();
         };
 
-        moduleEngine.ModuleRunException += (o, ev) =>
+        testingContext.ModuleEngine.ModuleRunException += (o, ev) =>
         {
             ev.NextModule = "inexistent";
         };
 
-        RunEngineInTimeBox();
+        testingContext.RunEngine();
 
         module1.RunCount.Should().Be(2);
-    }
-
-    private DummyModule CreateDummyModule(string id)
-    {
-        DummyModule module1 = new(id);
-        moduleEngine.AddModule(module1);
-        return module1;
-    }
-
-    private void RunEngineInTimeBox(int maxExecutionTime = 100)
-    {
-        TimeBoxExecution.CreateNew(maxExecutionTime)
-            .OnElapsedTime(() =>
-            {
-                moduleEngine.RequestToClose();
-            })
-            .Run(() =>
-            {
-                moduleEngine.Run();
-            });
     }
 }
